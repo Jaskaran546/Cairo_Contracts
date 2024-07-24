@@ -1,0 +1,18 @@
+[package]
+name = "cairotoken"
+version = "0.1.0"
+edition = "2023_11"
+
+# See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest.html
+
+[dependencies]
+openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.14.0" }
+
+[[target.starknet-contract]]
+sierra = true
+
+[tool.voyager]
+my_contract = { path = "lib.cairo" }
+
+
+RUST_BACKTRACE=1
