@@ -19,6 +19,8 @@ pub trait ITokenFactory<TContractState> {
 
     /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn update_token_class_hash(ref self: TContractState, token_class_hash: ClassHash);
+
+    fn get_token_class_hash(ref self: TContractState);
 }
 
 #[starknet::contract]
@@ -53,15 +55,16 @@ pub mod NewTokenFactory {
             // Contructor arguments
 
             let mut constructor_calldata: Array<felt252> = array![];
-            constructor_calldata.append(self.token_class_hash.read().into());
+            
             constructor_calldata.append(owner.into());
-            constructor_calldata.append(tokenName);
+            constructor_calldata.append(tokenName.into());
             constructor_calldata.append(tokenSymbol);
-            constructor_calldata.append(fixed_supply.low.into());
-            constructor_calldata.append(fixed_supply.high.into());
+            // constructor_calldata.append(fixed_supply.low.into());
+            constructor_calldata.append(fixed_supply.try_into().unwrap());
+
             // (self.token_class_hash.read(), owner, tokenName, tokenSymbol, fixed_supply)
             // .serialize(ref constructor_calldata);
-            // Contract deployment
+            
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
@@ -81,6 +84,10 @@ pub mod NewTokenFactory {
 
         fn update_token_class_hash(ref self: ContractState, token_class_hash: ClassHash) {
             self.token_class_hash.write(token_class_hash);
+        }
+
+        fn get_token_class_hash(ref self: ContractState) {
+            self.token_class_hash.read();
         }
     }
 }

@@ -3,12 +3,16 @@
 
 #[starknet::contract]
 mod CairoToken {
+    use core::traits::Into;
+    use core::traits::TryInto;
+
     use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::security::pausable::PausableComponent;
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
+
 
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: PausableComponent, storage: pausable, event: PausableEvent);
@@ -54,7 +58,11 @@ mod CairoToken {
         tokenSymbol: ByteArray,
         fixed_supply: u256,
     ) {
-        self.erc20.initializer(tokenName, tokenSymbol);
+        // let tempName = tokenName.try_into().span();
+        // let tempSymbol = tokenSymbol.try_into().unwrap();
+        let tempName: ByteArray = tokenName.try_into().unwrap();
+        let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
+        self.erc20.initializer(tempName, tempSymbol);
         self.ownable.initializer(owner);
         self.erc20.mint(owner, fixed_supply);
     }
