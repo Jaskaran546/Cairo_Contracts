@@ -15,4 +15,3 @@ sierra = true
 my_contract = { path = "lib.cairo" }
 
 
-RUST_BACKTRACE=1

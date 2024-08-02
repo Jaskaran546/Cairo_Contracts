@@ -7,11 +7,7 @@ pub trait ITokenFactory<TContractState> {
 
     /// Create a new counter contract from the given arguments
     fn create_token_at(
-        ref self: TContractState,
-        owner: ContractAddress,
-        tokenName: felt252,
-        tokenSymbol: felt252,
-        fixed_supply: u256
+        ref self: TContractState, tokenName: ByteArray, tokenSymbol: ByteArray, fixed_supply: u256
     ) -> ContractAddress;
 
     /// Update the argument
@@ -19,8 +15,7 @@ pub trait ITokenFactory<TContractState> {
 
     /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn update_token_class_hash(ref self: TContractState, token_class_hash: ClassHash);
-
-    fn get_token_class_hash(ref self: TContractState);
+    fn get_token_class_hash(self: @TContractState) -> ClassHash;
 }
 
 #[starknet::contract]
@@ -38,39 +33,43 @@ pub mod NewTokenFactory {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress, class_hash: ClassHash) {
+    fn constructor(ref self: ContractState, owner: ContractAddress, token_class_hash: ClassHash) {
         self.owner.write(owner);
-        self.token_class_hash.write(class_hash);
+        self.token_class_hash.write(token_class_hash);
     }
 
     #[abi(embed_v0)]
     impl Factory of super::ITokenFactory<ContractState> {
         fn create_token_at(
             ref self: ContractState,
-            owner: ContractAddress,
-            tokenName: felt252,
-            tokenSymbol: felt252,
+            tokenName: ByteArray,
+            tokenSymbol: ByteArray,
             fixed_supply: u256
         ) -> ContractAddress {
             // Contructor arguments
 
             let mut constructor_calldata: Array<felt252> = array![];
-            
-            constructor_calldata.append(owner.into());
-            constructor_calldata.append(tokenName.into());
-            constructor_calldata.append(tokenSymbol);
+
+            // constructor_calldata.append(owner.into());
+            // constructor_calldata.append(tokenName.into());
+            // constructor_calldata.append(tokenSymbol);
             // constructor_calldata.append(fixed_supply.low.into());
-            constructor_calldata.append(fixed_supply.try_into().unwrap());
+            // constructor_calldata.append(fixed_supply.try_into().unwrap());
+
+            // let mut constructor_calldata = ArrayTrait::new();
+
+            self.token_class_hash.read().serialize(ref constructor_calldata);
+            tokenName.serialize(ref constructor_calldata);
+            tokenSymbol.serialize(ref constructor_calldata);
+            fixed_supply.serialize(ref constructor_calldata);
 
             // (self.token_class_hash.read(), owner, tokenName, tokenSymbol, fixed_supply)
-            // .serialize(ref constructor_calldata);
-            
+            //     .serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
             )
                 .unwrap_syscall();
-
             deployed_address
         }
 
@@ -86,8 +85,8 @@ pub mod NewTokenFactory {
             self.token_class_hash.write(token_class_hash);
         }
 
-        fn get_token_class_hash(ref self: ContractState) {
-            self.token_class_hash.read();
+        fn get_token_class_hash(self: @ContractState) -> ClassHash {
+            self.token_class_hash.read()
         }
     }
 }

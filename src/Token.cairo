@@ -2,7 +2,7 @@
 // Compatible with OpenZeppelin Contracts for Cairo ^0.14.0
 
 #[starknet::contract]
-mod CairoToken {
+mod OldToken {
     use core::traits::Into;
     use core::traits::TryInto;
 
@@ -51,15 +51,10 @@ mod CairoToken {
     }
 
     #[constructor]
-    fn constructor(
-        ref self: ContractState, tokenName: ByteArray, tokenSymbol: ByteArray, fixed_supply: u256,
-    ) {
-        // let tempName: ByteArray = tokenName.try_into().unwrap();
-        // let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
-
-        self.erc20.initializer(tokenName, tokenSymbol);
-        self.ownable.initializer(get_caller_address());
-        self.erc20.mint(get_caller_address(), fixed_supply);
+    fn constructor(ref self: ContractState, owner: ContractAddress, fixed_supply: u256,) {
+        self.erc20.initializer("TempToken", "TempT");
+        self.ownable.initializer(owner);
+        self.erc20.mint(owner, fixed_supply);
     }
 
     impl ERC20HooksImpl of ERC20Component::ERC20HooksTrait<ContractState> {
