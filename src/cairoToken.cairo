@@ -5,14 +5,13 @@
 mod CairoToken {
     use core::traits::Into;
     use core::traits::TryInto;
-
+    use core::dict::Felt252Dict;
     use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::security::pausable::PausableComponent;
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
-
 
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: PausableComponent, storage: pausable, event: PausableEvent);
@@ -37,7 +36,15 @@ mod CairoToken {
         pausable: PausableComponent::Storage,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
+        frozen: LegacyMap::<ContractAddress, bool>
     }
+
+    #[derive(Drop, starknet::Event)]
+    struct FrozenUser {
+        user: ContractAddress,
+        frozen: bool,
+    }
+
 
     #[event]
     #[derive(Drop, starknet::Event)]
@@ -48,6 +55,7 @@ mod CairoToken {
         PausableEvent: PausableComponent::Event,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
+        Frozen: FrozenUser
     }
 
     #[constructor]
@@ -56,7 +64,7 @@ mod CairoToken {
     ) {
         // let tempName: ByteArray = tokenName.try_into().unwrap();
         // let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
-
+        println!("insidetoken {},{},{}", tokenName, tokenSymbol, fixed_supply);
         self.erc20.initializer(tokenName, tokenSymbol);
         self.ownable.initializer(get_caller_address());
         self.erc20.mint(get_caller_address(), fixed_supply);
@@ -105,6 +113,12 @@ mod CairoToken {
         fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
             self.ownable.assert_only_owner();
             self.erc20.mint(recipient, amount);
+        }
+        #[external(v0)]
+        fn freeze(ref self: ContractState, user: ContractAddress) {
+            self.ownable.assert_only_owner();
+            self.frozen.write(user, true);
+            self.emit(FrozenUser { user: user, frozen: true, })
         }
     }
 }

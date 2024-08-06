@@ -7,11 +7,18 @@ edition = "2023_11"
 
 [dependencies]
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.14.0" }
-
-[[target.starknet-contract]]
-sierra = true
+starknet="2.5.3"
 
 [tool.voyager]
 my_contract = { path = "lib.cairo" }
+[dev-dependencies]
+snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag = "v0.27.0" }
+
+[scripts]
+test = "snforge test"
+
+[[target.starknet-contract]]
+casm = true
+sierra = true
 
 

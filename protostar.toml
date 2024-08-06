@@ -1,0 +1,13 @@
+[project]
+protostar-version = "0.14.0"
+lib-path = "lib"
+contracts-path = "contracts"
+tests-path = "tests"
+
+[protostar.shared_command_configs]
+account-contract = "starkware.cairo.lang.starknet_contracts.StarknetAccount"
+
+[protostar.tests]
+
+[contracts]
+NewTokenFactory=["cairotoken"]

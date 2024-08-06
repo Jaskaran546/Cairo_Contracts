@@ -93,7 +93,6 @@ const SymbolbyteArray = {
 
 };
 
-
   const res = await myTestContract.create_token_at(
     byteArray,
     SymbolbyteArray,
