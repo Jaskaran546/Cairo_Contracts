@@ -13,6 +13,7 @@ mod CairoToken {
     use starknet::ContractAddress;
     use starknet::get_caller_address;
 
+
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: PausableComponent, storage: pausable, event: PausableEvent);
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -60,16 +61,17 @@ mod CairoToken {
 
     #[constructor]
     fn constructor(
-        ref self: ContractState, tokenName: ByteArray, tokenSymbol: ByteArray, fixed_supply: u256,
+        ref self: ContractState,
+        tokenName: ByteArray,
+        tokenSymbol: ByteArray,
+        owner: ContractAddress,
+        fixed_supply: u256,
     ) {
-        // let tempName: ByteArray = tokenName.try_into().unwrap();
-        // let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
         self.erc20.initializer(tokenName, tokenSymbol);
-        self.ownable.initializer(get_caller_address());
-        self.erc20.mint(get_caller_address(), fixed_supply);
+        self.ownable.initializer(owner);
+        self.erc20.mint(owner, fixed_supply);
     }
 
-    #[abi(embed_v0)]
     impl ERC20HooksImpl of ERC20Component::ERC20HooksTrait<ContractState> {
         fn before_update(
             ref self: ERC20Component::ComponentState<ContractState>,
@@ -116,7 +118,6 @@ mod CairoToken {
         }
         #[external(v0)]
         fn freeze(ref self: ContractState, user: ContractAddress) {
-            // self.ownable.assert_only_owner();
             self.frozen.write(user, true);
             self.emit(FrozenUser { user: user, frozen: true, })
         }

@@ -7,7 +7,11 @@ pub trait ITokenFactory<TContractState> {
 
     /// Create a new counter contract from the given arguments
     fn create_token_at(
-        ref self: TContractState, tokenName: ByteArray, tokenSymbol: ByteArray, fixed_supply: u256
+        ref self: TContractState,
+        tokenName: ByteArray,
+        tokenSymbol: ByteArray,
+        owner: ContractAddress,
+        fixed_supply: u256
     ) -> ContractAddress;
 
     /// Update the argument
@@ -44,27 +48,18 @@ pub mod NewTokenFactory {
             ref self: ContractState,
             tokenName: ByteArray,
             tokenSymbol: ByteArray,
+            owner: ContractAddress,
             fixed_supply: u256
         ) -> ContractAddress {
             // Contructor arguments
 
             let mut constructor_calldata: Array<felt252> = array![];
 
-            // constructor_calldata.append(owner.into());
-            // constructor_calldata.append(tokenName.into());
-            // constructor_calldata.append(tokenSymbol);
-            // constructor_calldata.append(fixed_supply.low.into());
-            // constructor_calldata.append(fixed_supply.try_into().unwrap());
-
-            // let mut constructor_calldata = ArrayTrait::new();
-
             self.token_class_hash.read().serialize(ref constructor_calldata);
             tokenName.serialize(ref constructor_calldata);
             tokenSymbol.serialize(ref constructor_calldata);
+            owner.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
-
-            // (self.token_class_hash.read(), owner, tokenName, tokenSymbol, fixed_supply)
-            //     .serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
@@ -73,9 +68,6 @@ pub mod NewTokenFactory {
             deployed_address
         }
 
-        // fn create_token(ref self: ContractState) -> ContractAddress {
-        //     self.create_token_at(self.owner.read())
-        // }
 
         fn update_owner(ref self: ContractState, owner: ContractAddress) {
             self.owner.write(owner);
