@@ -4,15 +4,15 @@ pub use starknet::{ContractAddress, ClassHash};
 
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts for Cairo ^0.14.0
-#[starknet::interface]
-pub trait ICairoToken<TContractState> {
-    /// Create a new counter contract from stored arguments
-    // fn create_token(ref self: TContractState) -> ContractAddress;
+// #[starknet::interface]
+// pub trait ICairoToken<TContractState> {
+//     /// Create a new counter contract from stored arguments
+//     // fn create_token(ref self: TContractState) -> ContractAddress;
 
-    /// Create a new counter contract from the given arguments
-    fn freeze(
-        ref self: TContractState, user: ContractAddress,freeze:bool);
-}
+//     /// Create a new counter contract from the given arguments
+//     fn freeze(
+//         ref self: TContractState, user: ContractAddress,freeze:bool);
+// }
 
 #[starknet::contract]
 mod CairoToken {
@@ -77,7 +77,6 @@ mod CairoToken {
     ) {
         // let tempName: ByteArray = tokenName.try_into().unwrap();
         // let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
-        println!("insidetoken {},{},{}", tokenName, tokenSymbol, fixed_supply);
         self.erc20.initializer(tokenName, tokenSymbol);
         self.ownable.initializer(get_caller_address());
         self.erc20.mint(get_caller_address(), fixed_supply);

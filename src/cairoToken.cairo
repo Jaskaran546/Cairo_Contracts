@@ -64,12 +64,12 @@ mod CairoToken {
     ) {
         // let tempName: ByteArray = tokenName.try_into().unwrap();
         // let tempSymbol: ByteArray = tokenSymbol.try_into().unwrap();
-        println!("insidetoken {},{},{}", tokenName, tokenSymbol, fixed_supply);
         self.erc20.initializer(tokenName, tokenSymbol);
         self.ownable.initializer(get_caller_address());
         self.erc20.mint(get_caller_address(), fixed_supply);
     }
 
+    #[abi(embed_v0)]
     impl ERC20HooksImpl of ERC20Component::ERC20HooksTrait<ContractState> {
         fn before_update(
             ref self: ERC20Component::ComponentState<ContractState>,
@@ -116,7 +116,7 @@ mod CairoToken {
         }
         #[external(v0)]
         fn freeze(ref self: ContractState, user: ContractAddress) {
-            self.ownable.assert_only_owner();
+            // self.ownable.assert_only_owner();
             self.frozen.write(user, true);
             self.emit(FrozenUser { user: user, frozen: true, })
         }
