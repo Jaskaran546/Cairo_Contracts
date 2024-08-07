@@ -1,5 +1,12 @@
-// SPDX-License-Identifier: MIT
-// Compatible with OpenZeppelin Contracts for Cairo ^0.14.0
+pub use starknet::{ContractAddress, ClassHash};
+#[starknet::interface]
+pub trait ICairoToken<TContractState> {
+    /// Update the class hash of the Counter contract to deploy when creating a new counter
+        fn freeze(ref self: TContractState, user: ContractAddress);
+        fn mint(ref self: TContractState,recipient:ContractAddress,amount:u256);
+        fn isAccountFreezed(self: @TContractState,user:ContractAddress) -> bool;
+
+}
 
 #[starknet::contract]
 mod CairoToken {
@@ -81,6 +88,11 @@ mod CairoToken {
         ) {
             let contract_state = ERC20Component::HasComponent::get_contract(@self);
             contract_state.pausable.assert_not_paused();
+            // Check if sender or recipient is frozen
+            let from_frozen = contract_state.isAccountFreezed(from);
+            let recipient_frozen = contract_state.isAccountFreezed(recipient);
+            assert!(!from_frozen, "Sender account is frozen");
+            assert!(!recipient_frozen, "Recipient account is frozen");
         }
 
         fn after_update(
@@ -120,6 +132,11 @@ mod CairoToken {
         fn freeze(ref self: ContractState, user: ContractAddress) {
             self.frozen.write(user, true);
             self.emit(FrozenUser { user: user, frozen: true, })
+        }
+
+        #[external(v0)]
+        fn isAccountFreezed(self: @ContractState,user:ContractAddress) -> bool {
+            self.frozen.read(user)
         }
     }
 }

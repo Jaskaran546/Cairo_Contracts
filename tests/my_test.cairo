@@ -31,6 +31,7 @@ fn call_and_invoke() {
     let three: u256 = 2300;
     token_name.serialize(ref constTokenArgs);
     token_symbol.serialize(ref constTokenArgs);
+    owner.serialize(ref constTokenArgs);
     three.serialize(ref constTokenArgs);
 
     // let (contract_address, _) = contract.deploy(@constArgs).unwrap();
@@ -41,20 +42,22 @@ fn call_and_invoke() {
     // Create a Dispatcher object that will allow interacting with the deployed contract
     // let dispatcher = ITokenFactoryDispatcher { contract_address };
     let (contract_address, _) = contract1.deploy(@constTokenArgs).unwrap();
-
     let dispatcherToken = ICairoTokenDispatcher { contract_address };
 
     let mut freezeconstTokenArgs = ArrayTrait::new();
     // "abc" as byte array
     owner.serialize(ref freezeconstTokenArgs);
     let freeze: bool = true; // "ppp" as byte array
-    freeze.serialize(ref freezeconstTokenArgs);
+    three.serialize(ref freezeconstTokenArgs);
     // // Call a view function of the contract
     // let _balance = dispatcher.create_token_at(979899,112112112,49504848);
     // let balance = dispatcher.create_token_at(token_name,token_symbol,three);
-    let _balance = dispatcherToken.freeze(owner.try_into().unwrap(), freeze);
-    let state = dispatcherToken.frozen();
-// println!("{:?}",balance);
+    let _balance = dispatcherToken.freeze(owner.try_into().unwrap());
+    let _mint = dispatcherToken.mint(owner.try_into().unwrap(),2300);
+    // let _balance = dispatcherToken.transfer(owner.try_into().unwrap(),owner.try_into().unwrap());
+
+    // let state = dispatcherToken.isAccountFreezed(owner.try_into().unwrap());
+// println!("{:?}",state);
 // assert(balance == 0, 'balance == 0');
 
 // // Call a function of the contract
