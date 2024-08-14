@@ -18,6 +18,7 @@ mod CairoToken {
     use openzeppelin::security::pausable::PausableComponent;
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
+    use starknet::storage::{Map, StoragePathEntry};
     use starknet::get_caller_address;
 
 
@@ -44,7 +45,7 @@ mod CairoToken {
         pausable: PausableComponent::Storage,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
-        frozen: LegacyMap::<ContractAddress, bool>
+        frozen: Map::<ContractAddress, bool>
     }
 
     #[derive(Drop, starknet::Event)]
