@@ -135,6 +135,12 @@ mod CairoToken {
         }
 
         #[external(v0)]
+        fn unfreeze(ref self: ContractState, user: ContractAddress) {
+            self.frozen.write(user, false);
+            self.emit(FrozenUser { user: user, frozen: false, })
+        }
+
+        #[external(v0)]
         fn isAccountFreezed(self: @ContractState,user:ContractAddress) -> bool {
             self.frozen.read(user)
         }
