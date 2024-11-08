@@ -2,16 +2,16 @@ pub use starknet::{ContractAddress, ClassHash};
 
 #[starknet::interface]
 pub trait ITokenFactory<TContractState> {
-    /// Create a new counter contract from stored arguments
-    // fn create_token(ref self: TContractState) -> ContractAddress;
-
+    
     /// Create a new counter contract from the given arguments
     fn create_token_at(
         ref self: TContractState,
         tokenName: ByteArray,
         tokenSymbol: ByteArray,
-        owner: ContractAddress,
-        fixed_supply: u256
+        default_admin: ContractAddress,
+        fixed_supply: u256,
+        minter: ContractAddress,
+        agent: ContractAddress
     ) -> ContractAddress;
 
     /// Update the argument
@@ -42,29 +42,66 @@ pub mod NewTokenFactory {
         self.token_class_hash.write(token_class_hash);
     }
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    pub enum Event {
+        TokenCreated: TokenCreated,
+    }
+
+
+    #[derive(Drop, starknet::Event)]
+    struct TokenCreated {
+        token_name: ByteArray,
+        token_symbol: ByteArray,
+        deployed_address: ContractAddress,
+        default_admin: ContractAddress,
+        fixed_supply: u256,
+        minter: ContractAddress,
+        agent: ContractAddress,
+    }
+
+
     #[abi(embed_v0)]
     impl Factory of super::ITokenFactory<ContractState> {
         fn create_token_at(
             ref self: ContractState,
             tokenName: ByteArray,
             tokenSymbol: ByteArray,
-            owner: ContractAddress,
-            fixed_supply: u256
+            default_admin: ContractAddress,
+            fixed_supply: u256,
+            minter: ContractAddress,
+            agent: ContractAddress
         ) -> ContractAddress {
             // Contructor arguments
 
             let mut constructor_calldata: Array<felt252> = array![];
 
             self.token_class_hash.read().serialize(ref constructor_calldata);
+
             tokenName.serialize(ref constructor_calldata);
             tokenSymbol.serialize(ref constructor_calldata);
-            owner.serialize(ref constructor_calldata);
+            default_admin.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
+            minter.serialize(ref constructor_calldata);
+            agent.serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
             )
                 .unwrap_syscall();
+            self
+                .emit(
+                    TokenCreated {
+                        token_name: tokenName,
+                        token_symbol: tokenSymbol,
+                        deployed_address: deployed_address,
+                        default_admin: default_admin,
+                        fixed_supply: fixed_supply,
+                        minter: minter,
+                        agent: agent,
+                    }
+                );
+
             deployed_address
         }
 

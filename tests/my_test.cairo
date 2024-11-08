@@ -53,18 +53,18 @@ fn call_and_invoke() {
     // let _balance = dispatcher.create_token_at(979899,112112112,49504848);
     // let balance = dispatcher.create_token_at(token_name,token_symbol,three);
     let _balance = dispatcherToken.freeze(owner.try_into().unwrap());
-    let _mint = dispatcherToken.mint(owner.try_into().unwrap(),2300);
+    let _mint = dispatcherToken.mint(owner.try_into().unwrap(), 2300);
     // let _balance = dispatcherToken.transfer(owner.try_into().unwrap(),owner.try_into().unwrap());
 
     // let state = dispatcherToken.isAccountFreezed(owner.try_into().unwrap());
 // println!("{:?}",state);
 // assert(balance == 0, 'balance == 0');
 
-// // Call a function of the contract
+    // // Call a function of the contract
 // // Here we mutate the state of the storage
 // dispatcher.increase_balance(100);
 
-// // Check that transaction took effect
+    // // Check that transaction took effect
 // let balance = dispatcher.get_balance();
 // assert(balance == 100, 'balance == 100');
 }
