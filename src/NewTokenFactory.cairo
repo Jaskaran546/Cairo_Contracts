@@ -2,12 +2,11 @@ pub use starknet::{ContractAddress, ClassHash};
 
 #[starknet::interface]
 pub trait ITokenFactory<TContractState> {
-    
     /// Create a new counter contract from the given arguments
     fn create_token_at(
         ref self: TContractState,
-        tokenName: ByteArray,
-        tokenSymbol: ByteArray,
+        token_name: ByteArray,
+        token_symbol: ByteArray,
         default_admin: ContractAddress,
         fixed_supply: u256,
         minter: ContractAddress,
@@ -24,7 +23,6 @@ pub trait ITokenFactory<TContractState> {
 
 #[starknet::contract]
 pub mod NewTokenFactory {
-    use core::traits::TryInto;
     use core::traits::Into;
     use starknet::{ContractAddress, ClassHash, SyscallResultTrait, syscalls::deploy_syscall};
 
@@ -65,8 +63,8 @@ pub mod NewTokenFactory {
     impl Factory of super::ITokenFactory<ContractState> {
         fn create_token_at(
             ref self: ContractState,
-            tokenName: ByteArray,
-            tokenSymbol: ByteArray,
+            token_name: ByteArray,
+            token_symbol: ByteArray,
             default_admin: ContractAddress,
             fixed_supply: u256,
             minter: ContractAddress,
@@ -78,8 +76,8 @@ pub mod NewTokenFactory {
 
             self.token_class_hash.read().serialize(ref constructor_calldata);
 
-            tokenName.serialize(ref constructor_calldata);
-            tokenSymbol.serialize(ref constructor_calldata);
+            token_name.serialize(ref constructor_calldata);
+            token_symbol.serialize(ref constructor_calldata);
             default_admin.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
             minter.serialize(ref constructor_calldata);
@@ -92,8 +90,8 @@ pub mod NewTokenFactory {
             self
                 .emit(
                     TokenCreated {
-                        token_name: tokenName,
-                        token_symbol: tokenSymbol,
+                        token_name: token_name,
+                        token_symbol: token_symbol,
                         deployed_address: deployed_address,
                         default_admin: default_admin,
                         fixed_supply: fixed_supply,

@@ -14,16 +14,13 @@ const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
 #[starknet::contract]
 mod AssetToken {
     use core::traits::Into;
-    use core::traits::TryInto;
-    use core::dict::Felt252Dict;
-    use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use openzeppelin::security::pausable::PausableComponent;
     use openzeppelin::access::accesscontrol::DEFAULT_ADMIN_ROLE;
     use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::introspection::src5::SRC5Component;
     use starknet::ContractAddress;
-    use starknet::storage::{Map, StoragePathEntry};
+    use starknet::storage::{Map};
     use starknet::get_caller_address;
     use super::{ADMIN_ROLE};
     use super::{AGENT_ROLE};
@@ -104,6 +101,7 @@ mod AssetToken {
         agent: ContractAddress
     ) {
         self.erc20.initializer(tokenName, tokenSymbol);
+
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, default_admin);
