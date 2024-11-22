@@ -22,7 +22,6 @@ pub mod Escrow {
     // Import the OpenZeppelin ownable component
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-
     use starknet::{ContractAddress};
     use starknet::{get_caller_address, get_contract_address};
     use starknet::storage::{
@@ -34,7 +33,6 @@ pub mod Escrow {
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
 
     // Ownable Mixin
-    #[abi(embed_v0)]
     impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
     impl InternalImpl = OwnableComponent::InternalImpl<ContractState>;
 

@@ -1,10 +1,15 @@
 pub use starknet::{ContractAddress, ClassHash};
 #[starknet::interface]
-pub trait IAssetToken<TContractState> {
+pub trait IAssetTokenDispatcherTrait<TContractState> {
     /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn freeze(ref self: TContractState, user: ContractAddress);
     fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
     fn isAccountFreezed(self: @TContractState, user: ContractAddress) -> bool;
+    fn has_role(ref self: TContractState, role: felt252, account: ContractAddress) -> bool;
+    fn get_role_admin(ref self: TContractState, role: felt252) -> felt252;
+    fn grant_role(ref self: TContractState, role: felt252, account: ContractAddress);
+    fn revoke_role(ref self: TContractState, role: felt252, account: ContractAddress);
+    fn renounce_role(ref self: TContractState, role: felt252, account: ContractAddress);
 }
 
 const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
@@ -137,7 +142,7 @@ mod AssetToken {
 
     #[generate_trait]
     #[abi(per_item)]
-    impl ExternalImpl of ExternalTrait {
+    impl IAssetTokenDispatcherImpl of IAssetTokenDispatcherTrait {
         // Helper function to check whitelist status
         fn assert_whitelisted(ref self: ContractState) {
             let caller = get_caller_address();
