@@ -74,8 +74,6 @@ pub mod NewTokenFactory {
 
             let mut constructor_calldata: Array<felt252> = array![];
 
-            self.token_class_hash.read().serialize(ref constructor_calldata);
-
             token_name.serialize(ref constructor_calldata);
             token_symbol.serialize(ref constructor_calldata);
             default_admin.serialize(ref constructor_calldata);
