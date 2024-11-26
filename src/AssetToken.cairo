@@ -106,7 +106,6 @@ mod AssetToken {
         agent: ContractAddress
     ) {
         self.erc20.initializer(tokenName, tokenSymbol);
-
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, default_admin);

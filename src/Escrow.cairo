@@ -8,6 +8,7 @@ trait IEscrow<TContractState> {
     fn set_admin_wallet(ref self: TContractState, admin_wallet: ContractAddress, id: felt252);
     fn get_admin_fee(self: @TContractState) -> u256;
     fn deposit(ref self: TContractState, token: ContractAddress, amount: u256, order_id: felt252);
+    fn get_role(self: @TContractState, token: ContractAddress, user: ContractAddress) -> bool;
 }
 
 mod Errors {
@@ -23,6 +24,7 @@ pub mod Escrow {
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::{ContractAddress};
+    use super::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
     use starknet::{get_caller_address, get_contract_address};
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
@@ -131,10 +133,6 @@ pub mod Escrow {
             self.emit(Deposited { user, amount, order_id });
         }
 
-        // fn settlement(ref self: ContractState,order_id:felt252){
-
-        // }
-
         // Getter for admin_fee
         fn get_admin_fee(self: @ContractState) -> u256 {
             return self.admin_fee.read();
@@ -142,6 +140,10 @@ pub mod Escrow {
 
         fn get_owner(self: @ContractState) -> ContractAddress {
             return self.ownable.owner();
+        }
+        fn get_role(self: @ContractState, token: ContractAddress, user: ContractAddress) -> bool {
+            let asset_token_dispatcher = IAssetTokenDispatcher { token };
+            return asset_token_dispatcher.has_role(user);
         }
     }
 }
