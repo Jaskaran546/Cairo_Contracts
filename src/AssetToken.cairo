@@ -188,6 +188,10 @@ mod AssetToken {
         }
 
         #[external(v0)]
+        fn isTokenAgent(self: @ContractState, user: ContractAddress) -> bool {
+           return self.accesscontrol.has_role(AGENT_ROLE,user);
+        }
+        #[external(v0)]
         fn burn(ref self: ContractState, value: u256) {
             self.erc20.burn(get_caller_address(), value);
         }
@@ -195,7 +199,6 @@ mod AssetToken {
         #[external(v0)]
         fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
             let caller = get_caller_address();
-
             assert!(self.is_whitelisted(caller), "User is not whitelisted");
             self.accesscontrol.assert_only_role(AGENT_ROLE);
             self.erc20.mint(recipient, amount);

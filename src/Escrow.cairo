@@ -1,6 +1,5 @@
 use starknet::{ContractAddress};
 use crate::AssetToken::IAssetToken;
-use crate::AssetToken::IAssetTokenDispatcher;
 
 #[starknet::interface]
 trait IEscrow<TContractState> {

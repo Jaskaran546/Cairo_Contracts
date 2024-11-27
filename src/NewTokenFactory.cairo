@@ -79,7 +79,6 @@ pub mod NewTokenFactory {
             default_admin.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
             agent.serialize(ref constructor_calldata);
-            salt_id.serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
