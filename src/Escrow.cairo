@@ -1,4 +1,6 @@
 use starknet::{ContractAddress};
+use crate::AssetToken::IAssetToken;
+use crate::AssetToken::IAssetTokenDispatcher;
 
 #[starknet::interface]
 trait IEscrow<TContractState> {
@@ -24,7 +26,6 @@ pub mod Escrow {
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::{ContractAddress};
-    use super::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
     use starknet::{get_caller_address, get_contract_address};
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,

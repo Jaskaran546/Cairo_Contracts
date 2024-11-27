@@ -9,8 +9,8 @@ pub trait ITokenFactory<TContractState> {
         token_symbol: ByteArray,
         default_admin: ContractAddress,
         fixed_supply: u256,
-        minter: ContractAddress,
-        agent: ContractAddress
+        agent: ContractAddress,
+        salt_id: felt252
     ) -> ContractAddress;
 
     /// Update the argument
@@ -54,8 +54,8 @@ pub mod NewTokenFactory {
         deployed_address: ContractAddress,
         default_admin: ContractAddress,
         fixed_supply: u256,
-        minter: ContractAddress,
         agent: ContractAddress,
+        salt_id: felt252
     }
 
 
@@ -67,8 +67,8 @@ pub mod NewTokenFactory {
             token_symbol: ByteArray,
             default_admin: ContractAddress,
             fixed_supply: u256,
-            minter: ContractAddress,
-            agent: ContractAddress
+            agent: ContractAddress,
+            salt_id: felt252
         ) -> ContractAddress {
             // Contructor arguments
 
@@ -78,8 +78,8 @@ pub mod NewTokenFactory {
             token_symbol.serialize(ref constructor_calldata);
             default_admin.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
-            minter.serialize(ref constructor_calldata);
             agent.serialize(ref constructor_calldata);
+            salt_id.serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
@@ -93,11 +93,10 @@ pub mod NewTokenFactory {
                         deployed_address: deployed_address,
                         default_admin: default_admin,
                         fixed_supply: fixed_supply,
-                        minter: minter,
                         agent: agent,
+                        salt_id: salt_id
                     }
                 );
-
             deployed_address
         }
 

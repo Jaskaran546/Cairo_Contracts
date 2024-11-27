@@ -1,6 +1,6 @@
 pub use starknet::{ContractAddress, ClassHash};
 #[starknet::interface]
-pub trait IAssetTokenDispatcherTrait<TContractState> {
+pub trait IAssetToken<TContractState> {
     /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn freeze(ref self: TContractState, user: ContractAddress);
     fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
@@ -12,7 +12,6 @@ pub trait IAssetTokenDispatcherTrait<TContractState> {
     fn renounce_role(ref self: TContractState, role: felt252, account: ContractAddress);
 }
 
-const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
 const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
 
 
@@ -26,8 +25,7 @@ mod AssetToken {
     use openzeppelin::introspection::src5::SRC5Component;
     use starknet::ContractAddress;
     use starknet::storage::{Map};
-    use starknet::get_caller_address;
-    use super::{ADMIN_ROLE};
+    use starknet::{get_caller_address, get_contract_address};
     use super::{AGENT_ROLE};
 
 
@@ -67,6 +65,19 @@ mod AssetToken {
 
 
     #[derive(Drop, starknet::Event)]
+    struct AgentAdded {
+        agent: ContractAddress,
+        token_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct AgentRemoved {
+        agent: ContractAddress,
+        token_address: ContractAddress,
+    }
+
+
+    #[derive(Drop, starknet::Event)]
     struct WhitelistUser {
         user: ContractAddress,
         whitelisted: bool,
@@ -93,6 +104,8 @@ mod AssetToken {
         SRC5Event: SRC5Component::Event,
         Frozen: FrozenUser,
         Whitelisted: WhitelistUser, // New event
+        AgentAdded: AgentAdded,
+        AgentRemoved: AgentRemoved
     }
 
     #[constructor]
@@ -102,14 +115,13 @@ mod AssetToken {
         tokenSymbol: ByteArray,
         default_admin: ContractAddress,
         fixed_supply: u256,
-        minter: ContractAddress,
         agent: ContractAddress
     ) {
         self.erc20.initializer(tokenName, tokenSymbol);
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, default_admin);
-        self.accesscontrol._grant_role(AGENT_ROLE, minter);
+        self.accesscontrol._grant_role(AGENT_ROLE, agent);
         self.erc20.mint(default_admin, fixed_supply);
     }
 
@@ -151,16 +163,28 @@ mod AssetToken {
 
         #[external(v0)]
         fn pause(ref self: ContractState) {
-            self.accesscontrol.assert_only_role(ADMIN_ROLE);
-
+            self.accesscontrol.assert_only_role(DEFAULT_ADMIN_ROLE);
             self.pausable.pause();
         }
 
         #[external(v0)]
         fn unpause(ref self: ContractState) {
-            self.accesscontrol.assert_only_role(ADMIN_ROLE);
-
+            self.accesscontrol.assert_only_role(DEFAULT_ADMIN_ROLE);
             self.pausable.unpause();
+        }
+
+        #[external(v0)]
+        fn add_token_agent(ref self: ContractState, agent_address: ContractAddress) {
+            self.accesscontrol.assert_only_role(DEFAULT_ADMIN_ROLE);
+            self.accesscontrol._grant_role(AGENT_ROLE, agent_address);
+            self.emit(AgentAdded { agent: agent_address, token_address: get_contract_address() });
+        }
+
+        #[external(v0)]
+        fn remove_token_agent(ref self: ContractState, agent_address: ContractAddress) {
+            self.accesscontrol.assert_only_role(DEFAULT_ADMIN_ROLE);
+            self.accesscontrol.revoke_role(AGENT_ROLE, agent_address);
+            self.emit(AgentRemoved { agent: agent_address, token_address: get_contract_address() });
         }
 
         #[external(v0)]
@@ -178,12 +202,14 @@ mod AssetToken {
         }
         #[external(v0)]
         fn freeze(ref self: ContractState, user: ContractAddress) {
+            self.accesscontrol.assert_only_role(AGENT_ROLE);
             self.frozen.write(user, true);
             self.emit(FrozenUser { user: user, frozen: true, })
         }
 
         #[external(v0)]
         fn unfreeze(ref self: ContractState, user: ContractAddress) {
+            self.accesscontrol.assert_only_role(AGENT_ROLE);
             self.frozen.write(user, false);
             self.emit(FrozenUser { user: user, frozen: false, })
         }
