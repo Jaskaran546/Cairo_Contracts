@@ -1,5 +1,4 @@
 use starknet::{ContractAddress};
-use crate::AssetToken::IAssetToken;
 
 #[starknet::interface]
 trait IEscrow<TContractState> {
@@ -10,6 +9,7 @@ trait IEscrow<TContractState> {
     fn get_admin_fee(self: @TContractState) -> u256;
     fn deposit(ref self: TContractState, token: ContractAddress, amount: u256, order_id: felt252);
     fn get_role(self: @TContractState, token: ContractAddress, user: ContractAddress) -> bool;
+    fn settlement(ref self: TContractState, token: ContractAddress, order_id: felt252);
 }
 
 mod Errors {
@@ -22,6 +22,8 @@ mod Errors {
 #[starknet::contract]
 pub mod Escrow {
     // Import the OpenZeppelin ownable component
+    use crate::AssetToken::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
+    use crate::AssetToken::AGENT_ROLE;
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::{ContractAddress};
@@ -118,9 +120,10 @@ pub mod Escrow {
         fn deposit(
             ref self: ContractState, token: ContractAddress, amount: u256, order_id: felt252
         ) {
+            let user = get_caller_address(); // Get the caller address
+            assert(self.get_role(token, user) == true, 'Investor not whitelisted');
             assert(amount != 0, super::Errors::NULL_AMOUNT);
             assert(self.order_created.read(order_id) == 0, 'Used orderid');
-            let user = get_caller_address(); // Get the caller address
 
             // Update balance for user
             let current_balance = self.balance_of.read(user);
@@ -133,6 +136,11 @@ pub mod Escrow {
             self.emit(Deposited { user, amount, order_id });
         }
 
+        fn settlement(ref self: ContractState, token: ContractAddress, order_id: felt252) {
+            let user = get_caller_address(); // Get the caller address
+            assert(self.get_role(token, user) == true, 'Investor not whitelisted');
+        }
+
         // Getter for admin_fee
         fn get_admin_fee(self: @ContractState) -> u256 {
             return self.admin_fee.read();
@@ -142,8 +150,8 @@ pub mod Escrow {
             return self.ownable.owner();
         }
         fn get_role(self: @ContractState, token: ContractAddress, user: ContractAddress) -> bool {
-            let asset_token_dispatcher = IAssetTokenDispatcher { token };
-            return asset_token_dispatcher.has_role(user);
+            let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: token };
+            return asset_token_dispatcher.has_role(AGENT_ROLE, user);
         }
     }
 }

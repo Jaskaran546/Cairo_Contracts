@@ -3,16 +3,27 @@ pub use starknet::{ContractAddress, ClassHash};
 pub trait IAssetToken<TContractState> {
     /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn freeze(ref self: TContractState, user: ContractAddress);
+    fn unfreeze(ref self: TContractState, user: ContractAddress);
     fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
+    fn burn(ref self: TContractState, user: ContractAddress, value: u256);
     fn isAccountFreezed(self: @TContractState, user: ContractAddress) -> bool;
+
     fn has_role(ref self: TContractState, role: felt252, account: ContractAddress) -> bool;
     fn get_role_admin(ref self: TContractState, role: felt252) -> felt252;
     fn grant_role(ref self: TContractState, role: felt252, account: ContractAddress);
     fn revoke_role(ref self: TContractState, role: felt252, account: ContractAddress);
     fn renounce_role(ref self: TContractState, role: felt252, account: ContractAddress);
+
+    fn add_token_agent(ref self: TContractState, agent_address: ContractAddress);
+    fn remove_token_agent(ref self: TContractState, agent_address: ContractAddress);
+    fn isTokenAgent(self: @TContractState, user: ContractAddress) -> bool;
+
+    fn add_to_whitelist(ref self: TContractState, user: ContractAddress);
+    fn remove_from_whitelist(ref self: TContractState, user: ContractAddress);
+    fn is_whitelisted(self: @TContractState, user: ContractAddress) -> bool;
 }
 
-const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
+pub const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
 
 
 #[starknet::contract]
@@ -138,8 +149,13 @@ mod AssetToken {
             // Check if sender or recipient is frozen
             let from_frozen = contract_state.isAccountFreezed(from);
             let recipient_frozen = contract_state.isAccountFreezed(recipient);
+            let from_whitelisted = contract_state.is_whitelisted(from);
+            let recipient_whitelisted = contract_state.is_whitelisted(from);
+
             assert!(!from_frozen, "Sender account is frozen");
             assert!(!recipient_frozen, "Recipient account is frozen");
+            assert(!from_whitelisted, 'Sender is not Whitelisted');
+            assert(!recipient_whitelisted, 'Recipient is not Whitelisted');
         }
 
         fn after_update(
@@ -189,10 +205,10 @@ mod AssetToken {
 
         #[external(v0)]
         fn isTokenAgent(self: @ContractState, user: ContractAddress) -> bool {
-           return self.accesscontrol.has_role(AGENT_ROLE,user);
+            return self.accesscontrol.has_role(AGENT_ROLE, user);
         }
         #[external(v0)]
-        fn burn(ref self: ContractState, value: u256) {
+        fn burn(ref self: ContractState, user: ContractAddress, value: u256) {
             self.erc20.burn(get_caller_address(), value);
         }
 
@@ -203,6 +219,7 @@ mod AssetToken {
             self.accesscontrol.assert_only_role(AGENT_ROLE);
             self.erc20.mint(recipient, amount);
         }
+
         #[external(v0)]
         fn freeze(ref self: ContractState, user: ContractAddress) {
             self.accesscontrol.assert_only_role(AGENT_ROLE);
@@ -219,7 +236,7 @@ mod AssetToken {
 
         #[external(v0)]
         fn isAccountFreezed(self: @ContractState, user: ContractAddress) -> bool {
-            self.frozen.read(user)
+            return self.frozen.read(user);
         }
         #[external(v0)]
         fn add_to_whitelist(ref self: ContractState, user: ContractAddress) {
@@ -237,7 +254,17 @@ mod AssetToken {
 
         #[external(v0)]
         fn is_whitelisted(self: @ContractState, user: ContractAddress) -> bool {
-            self.whitelist.read(user)
+            return self.whitelist.read(user);
+        }
+        
+        #[external(v0)]
+        fn get_agent_role(self: @ContractState) -> felt252 {
+            return selector!("AGENT_ROLE");
+        }
+
+        #[external(v0)]
+        fn get_admin_role(self: @ContractState) -> felt252 {
+            return selector!("DEFAULT_ADMIN_ROLE");
         }
     }
 }
