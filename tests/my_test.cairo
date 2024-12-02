@@ -1,5 +1,5 @@
 use snforge_std::{declare, ContractClassTrait};
-use cairotoken::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
+// use cairotoken::{IAssetTokenDispatcher};
 use core::starknet::contract_address::ContractAddress;
 #[test]
 fn call_and_invoke() {
@@ -10,6 +10,9 @@ fn call_and_invoke() {
 
     // let tokenName:felt252 = "abc";
     // let tokenSymbol:felt252 = "aaaa";
+    let AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
+    println!("{:?}", AGENT_ROLE);
+
     let token_name: ByteArray = "abc"; // "abc" as byte array
     let token_symbol: ByteArray = "bbc"; // "ppp" as byte array
     let fixed_supply: u256 = 2300000;

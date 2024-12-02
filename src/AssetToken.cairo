@@ -8,12 +8,6 @@ pub trait IAssetToken<TContractState> {
     fn burn(ref self: TContractState, user: ContractAddress, value: u256);
     fn isAccountFreezed(self: @TContractState, user: ContractAddress) -> bool;
 
-    fn has_role(ref self: TContractState, role: felt252, account: ContractAddress) -> bool;
-    fn get_role_admin(ref self: TContractState, role: felt252) -> felt252;
-    fn grant_role(ref self: TContractState, role: felt252, account: ContractAddress);
-    fn revoke_role(ref self: TContractState, role: felt252, account: ContractAddress);
-    fn renounce_role(ref self: TContractState, role: felt252, account: ContractAddress);
-
     fn add_token_agent(ref self: TContractState, agent_address: ContractAddress);
     fn remove_token_agent(ref self: TContractState, agent_address: ContractAddress);
     fn isTokenAgent(self: @TContractState, user: ContractAddress) -> bool;
@@ -21,6 +15,8 @@ pub trait IAssetToken<TContractState> {
     fn add_to_whitelist(ref self: TContractState, user: ContractAddress);
     fn remove_from_whitelist(ref self: TContractState, user: ContractAddress);
     fn is_whitelisted(self: @TContractState, user: ContractAddress) -> bool;
+
+    fn add_admin_role(ref self: TContractState, user: ContractAddress);
 }
 
 pub const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
@@ -132,7 +128,10 @@ mod AssetToken {
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, default_admin);
+        self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, get_caller_address());
         self.accesscontrol._grant_role(AGENT_ROLE, agent);
+        self.accesscontrol._grant_role(AGENT_ROLE, get_caller_address());
+
         self.erc20.mint(default_admin, fixed_supply);
     }
 
@@ -256,7 +255,7 @@ mod AssetToken {
         fn is_whitelisted(self: @ContractState, user: ContractAddress) -> bool {
             return self.whitelist.read(user);
         }
-        
+
         #[external(v0)]
         fn get_agent_role(self: @ContractState) -> felt252 {
             return selector!("AGENT_ROLE");
@@ -265,6 +264,11 @@ mod AssetToken {
         #[external(v0)]
         fn get_admin_role(self: @ContractState) -> felt252 {
             return selector!("DEFAULT_ADMIN_ROLE");
+        }
+        #[external(v0)]
+        fn add_admin_role(ref self: ContractState, user: ContractAddress) {
+            self.accesscontrol.assert_only_role(AGENT_ROLE);
+            self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, user);
         }
     }
 }
