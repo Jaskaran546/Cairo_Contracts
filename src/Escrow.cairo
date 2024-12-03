@@ -22,16 +22,16 @@ mod Errors {
 #[starknet::contract]
 pub mod Escrow {
     // Import the OpenZeppelin ownable component
-    use crate::AssetToken::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
     use crate::AssetToken::AGENT_ROLE;
-    use openzeppelin_access::ownable::OwnableComponent;
+    use crate::AssetToken::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use starknet::{ContractAddress};
-    use starknet::{get_caller_address, get_contract_address};
+    use openzeppelin_access::ownable::OwnableComponent;
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess
     };
+    use starknet::{ContractAddress};
+    use starknet::{get_caller_address, get_contract_address};
 
     // Declare the component for Ownable
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);

@@ -5,11 +5,11 @@
 mod OldToken {
     use core::traits::Into;
     use core::traits::TryInto;
-
-    use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::security::pausable::PausableComponent;
     use openzeppelin::token::erc20::ERC20Component;
+
+    use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
 

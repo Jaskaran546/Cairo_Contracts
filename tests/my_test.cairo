@@ -1,6 +1,6 @@
-use snforge_std::{declare, ContractClassTrait};
 // use cairotoken::{IAssetTokenDispatcher};
 use core::starknet::contract_address::ContractAddress;
+use snforge_std::{declare, ContractClassTrait};
 #[test]
 fn call_and_invoke() {
     // First declare and deploy a contract

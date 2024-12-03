@@ -27,12 +27,10 @@ trait IController<TContractState> {
         self: @TContractState, token: ContractAddress, user: ContractAddress
     ) -> bool;
 
+
     fn token_add_default_admin(
-        ref self: TContractState,
-        token: ContractAddress,
-        admin: ContractAddress,
-        action_id: felt252
-    ); 
+        ref self: TContractState, token: ContractAddress, admin: ContractAddress, action_id: felt252
+    );
 
     fn token_add_agent(
         ref self: TContractState, token: ContractAddress, agent: ContractAddress, action_id: felt252
@@ -43,6 +41,8 @@ trait IController<TContractState> {
     fn is_token_agent(
         self: @TContractState, token: ContractAddress, agent: ContractAddress
     ) -> bool;
+
+
     fn is_user_whitelisted(
         self: @TContractState, token: ContractAddress, user: ContractAddress
     ) -> bool;
@@ -52,16 +52,39 @@ trait IController<TContractState> {
     fn remove_whitelisted_user(
         ref self: TContractState, token: ContractAddress, user: ContractAddress, action_id: felt252
     );
+
+
+    fn set_admin_fee(ref self: TContractState, fee: u256, action_id: felt252);
+
+    fn deposit(
+        ref self: TContractState,
+        sender: ContractAddress,
+        stablecoin: ContractAddress,
+        stablecoin_amount: u256,
+        asset: ContractAddress,
+        asset_amount: u256,
+        order_id: felt252
+    );
+    fn settlement(ref self: TContractState, order_id: felt252, action_id: felt252);
+    // fn batch_mint(
+//     ref self: TContractState, recipients: Array<(ContractAddress, u256)>,
+//     action_id: felt252
+// );
 }
 
 
 #[starknet::contract]
 pub mod Controller {
-    use starknet::{ContractAddress};
-    use openzeppelin::access::ownable::OwnableComponent;
     use crate::AssetToken::{IAssetTokenDispatcher, IAssetTokenDispatcherTrait};
-    // use starknet::storage::{Map};
+    use openzeppelin::access::ownable::OwnableComponent;
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::storage::{Map, StoragePathEntry};
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use starknet::{ContractAddress};
+    use starknet::{get_caller_address, get_contract_address};
+
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+
 
     #[abi(embed_v0)]
     impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
@@ -72,16 +95,46 @@ pub mod Controller {
     struct Storage {
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
+        deposits: Map<(ContractAddress, ContractAddress), u256>,
+        order_created: Map<felt252, bool>, // To track created orders
+        investor_orders: Map<felt252, InvestorOrder>, // To store investor orders
+        received_amount: Map<felt252, u256>, // To track received amounts
+        pending_order_amount: Map<ContractAddress, u256>, // To track pending order amounts per coin
+        total_pending_order_amount: u256, // To track total pending amounts
+        owner: ContractAddress,
+        admin_fee: u256
     }
 
-    #[derive(Drop, Debug, starknet::Event)]
+    #[derive(Drop, starknet::Event)]
     struct Deposited {
         #[key]
-        user: ContractAddress,
+        investor: ContractAddress,
+        token: ContractAddress,
         amount: u256,
-        action_id: felt252
+        tokens: u256,
+        order_id: felt252,
+        coin: ContractAddress,
     }
 
+
+    #[derive(Drop, Debug, starknet::Store)]
+    struct InvestorOrder {
+        investor: ContractAddress,
+        asset: ContractAddress,
+        value: u256,
+        tokens: u256,
+        coin: ContractAddress,
+        status: bool,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct OrderSettled {
+        amount: u256,
+        tokens: u256,
+        admin_fee: u256,
+        order_id: felt252,
+        action_id: felt252,
+    }
 
     #[derive(Drop, starknet::Event)]
     struct AgentAdded {
@@ -137,6 +190,12 @@ pub mod Controller {
         action_id: felt252
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct AdminFeeUpdated {
+        admin_fee: u256,
+        action_id: felt252
+    }
+
 
     #[event]
     #[derive(Drop, starknet::Event)]
@@ -150,17 +209,52 @@ pub mod Controller {
         AgentRemoved: AgentRemoved,
         Minted: Minted,
         Burned: Burned,
-        DefaultAdminAdded: DefaultAdminAdded
+        DefaultAdminAdded: DefaultAdminAdded,
+        AdminFeeUpdated: AdminFeeUpdated,
+        OrderSettled: OrderSettled
     }
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
         // Initialize the owner using OwnableComponent
         self.ownable.initializer(owner);
+        self.owner.write(owner);
+        self.admin_fee.write(5);
     }
 
     #[abi(embed_v0)]
     impl Controller of super::IController<ContractState> {
         //-------------------------------TOKEN FUNCTIONS-------------------------------------
+
+        // fn batch_mint(
+        //     ref self: ContractState,  recipients: Array<(ContractAddress, u256)>,
+        //     action_id: felt252,
+        // ) {
+        //     let mut arr = array![];
+
+        //     // Same as ~ while (i < 10) arr.append(i++);
+        //     let mut i: u32 = 0;
+        //     let limit = recipients.len();
+        //     loop {
+        //         if i == limit {
+        //             break; // Exit the loop when all recipients are processed
+        //         }
+
+        //         // Safely access recipient and amount at the current index
+        //         let recipient_data = recipients.get(i).expect("Invalid recipient data");
+        //         let (recipient, amount) = recipient_data;
+
+        //         // Mint tokens for the current recipient
+        //         asset_token_dispatcher.mint(recipient, amount);
+
+        //         // Emit a Minted event for the current recipient
+        //         // self.emit(Minted {
+        //         //     token: token,
+        //         //     recipient: recipient,
+        //         //     amount: amount,
+        //         //     action_id: action_id,
+        //         // });
+        //         i += 1; // Increment the loop counter
+        // }
 
         fn token_mint(
             ref self: ContractState,
@@ -299,5 +393,95 @@ pub mod Controller {
         }
         //-------------------------------ESCROW FUNCTIONS-------------------------------------
 
+        fn deposit(
+            ref self: ContractState,
+            sender: ContractAddress,
+            stablecoin: ContractAddress,
+            stablecoin_amount: u256,
+            asset: ContractAddress,
+            asset_amount: u256,
+            order_id: felt252,
+        ) {
+            // Validations
+            // assert!(!token.is_non_zero(), ' Zero Address not allowed');
+
+            assert!(stablecoin_amount > 0, "Amount should be greater than 0");
+            let caller = get_caller_address();
+
+            // Check if the investor is whitelisted
+            let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: asset };
+            let coin_dispatcher = IERC20Dispatcher { contract_address: stablecoin };
+
+            let is_whitelisted = asset_token_dispatcher.is_whitelisted(caller);
+            assert!(is_whitelisted, "Investor not whitelisted");
+
+            // Check if the order is already created
+            let order_exists: bool = self.order_created.read(order_id);
+            assert!(!order_exists, "Order Already Created");
+
+            // Store the order details
+            let investor_order: InvestorOrder = InvestorOrder {
+                investor: caller,
+                asset: asset,
+                value: stablecoin_amount,
+                tokens: asset_amount,
+                coin: stablecoin,
+                status: false
+            };
+
+            // self.investor_orders.write(order_id,investor_order);
+            self.investor_orders.entry(order_id).write(investor_order);
+
+            self.received_amount.write(order_id, stablecoin_amount);
+            self.order_created.write(order_id, true);
+
+            coin_dispatcher.transfer_from(sender, get_contract_address(), stablecoin_amount);
+
+            // Emit the AmountReceived event
+            self
+                .emit(
+                    Deposited {
+                        investor: caller,
+                        token: asset,
+                        amount: stablecoin_amount,
+                        tokens: asset_amount,
+                        order_id: order_id,
+                        coin: stablecoin
+                    }
+                );
+        }
+
+        fn settlement(ref self: ContractState, order_id: felt252, action_id: felt252) {
+            let order = self.investor_orders.read(order_id);
+            let token = order.asset;
+            let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: token };
+            assert!(asset_token_dispatcher.isTokenAgent(get_caller_address()), "Invalid Issuer");
+
+            assert!(self.investor_orders.read(order_id).status, "Order already settled");
+
+            // Calculate admin fee amount
+            let admin_fee_amount = (order.value * self.admin_fee.read() / 100);
+            let final_amount = order.value - admin_fee_amount;
+
+            let stablecoin_address = order.coin;
+            let coin_dispatcher = IERC20Dispatcher { contract_address: stablecoin_address };
+
+            coin_dispatcher.transfer(get_caller_address(), final_amount);
+            coin_dispatcher.transfer(self.owner.read(), admin_fee_amount);
+            self
+                .emit(
+                    OrderSettled {
+                        amount: admin_fee_amount,
+                        tokens: final_amount,
+                        admin_fee: self.admin_fee.read(),
+                        order_id: order_id,
+                        action_id: action_id
+                    }
+                )
+        }
+        fn set_admin_fee(ref self: ContractState, fee: u256, action_id: felt252) {
+            self.admin_fee.write(fee);
+            self.emit(AdminFeeUpdated { admin_fee: fee, action_id: action_id })
+        }
     }
 }

@@ -18,8 +18,8 @@ pub trait ITokenFactory<TContractState> {
 
 #[starknet::contract]
 pub mod TokenFactory {
-    use core::traits::TryInto;
     use core::traits::Into;
+    use core::traits::TryInto;
     use starknet::{ContractAddress, ClassHash, SyscallResultTrait, syscalls::deploy_syscall};
 
     #[storage]

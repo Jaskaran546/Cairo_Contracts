@@ -17,6 +17,12 @@ pub trait IAssetToken<TContractState> {
     fn is_whitelisted(self: @TContractState, user: ContractAddress) -> bool;
 
     fn add_admin_role(ref self: TContractState, user: ContractAddress);
+    fn transfer_from(
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+    ) -> bool;
+    fn balance_of(ref self: TContractState, account: ContractAddress) -> u256;
+
+    fn add_controller(ref self: TContractState, controller: ContractAddress);
 }
 
 pub const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
@@ -25,11 +31,11 @@ pub const AGENT_ROLE: felt252 = selector!("AGENT_ROLE");
 #[starknet::contract]
 mod AssetToken {
     use core::traits::Into;
-    use openzeppelin::security::pausable::PausableComponent;
-    use openzeppelin::access::accesscontrol::DEFAULT_ADMIN_ROLE;
-    use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::access::accesscontrol::AccessControlComponent;
+    use openzeppelin::access::accesscontrol::DEFAULT_ADMIN_ROLE;
     use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin::security::pausable::PausableComponent;
+    use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
     use starknet::storage::{Map};
     use starknet::{get_caller_address, get_contract_address};
@@ -68,6 +74,7 @@ mod AssetToken {
         frozen: Map::<ContractAddress, bool>,
         // New storage for whitelist
         whitelist: Map<ContractAddress, bool>, // (Address, Country Code) -> Whitelisted
+        controller: ContractAddress
     }
 
 
@@ -122,15 +129,16 @@ mod AssetToken {
         tokenSymbol: ByteArray,
         default_admin: ContractAddress,
         fixed_supply: u256,
-        agent: ContractAddress
+        agent: ContractAddress,
+        controller: ContractAddress
     ) {
         self.erc20.initializer(tokenName, tokenSymbol);
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, default_admin);
-        self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, get_caller_address());
+        self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, controller);
         self.accesscontrol._grant_role(AGENT_ROLE, agent);
-        self.accesscontrol._grant_role(AGENT_ROLE, get_caller_address());
+        self.accesscontrol._grant_role(AGENT_ROLE, controller);
 
         self.erc20.mint(default_admin, fixed_supply);
     }
@@ -269,6 +277,12 @@ mod AssetToken {
         fn add_admin_role(ref self: ContractState, user: ContractAddress) {
             self.accesscontrol.assert_only_role(AGENT_ROLE);
             self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, user);
+        }
+        #[external(v0)]
+        fn add_controller(ref self: ContractState, controller: ContractAddress) {
+            self.accesscontrol.assert_only_role(AGENT_ROLE);
+            self.controller.write(controller);
+            self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, controller);
         }
     }
 }

@@ -10,6 +10,7 @@ pub trait ITokenFactory<TContractState> {
         default_admin: ContractAddress,
         fixed_supply: u256,
         agent: ContractAddress,
+        controller: ContractAddress,
         salt_id: felt252
     ) -> ContractAddress;
 
@@ -55,6 +56,7 @@ pub mod NewTokenFactory {
         default_admin: ContractAddress,
         fixed_supply: u256,
         agent: ContractAddress,
+        controller: ContractAddress,
         salt_id: felt252
     }
 
@@ -68,6 +70,7 @@ pub mod NewTokenFactory {
             default_admin: ContractAddress,
             fixed_supply: u256,
             agent: ContractAddress,
+            controller: ContractAddress,
             salt_id: felt252
         ) -> ContractAddress {
             // Contructor arguments
@@ -79,6 +82,7 @@ pub mod NewTokenFactory {
             default_admin.serialize(ref constructor_calldata);
             fixed_supply.serialize(ref constructor_calldata);
             agent.serialize(ref constructor_calldata);
+            controller.serialize(ref constructor_calldata);
 
             let (deployed_address, _) = deploy_syscall(
                 self.token_class_hash.read(), 0, constructor_calldata.span(), false
@@ -93,6 +97,7 @@ pub mod NewTokenFactory {
                         default_admin: default_admin,
                         fixed_supply: fixed_supply,
                         agent: agent,
+                        controller: controller,
                         salt_id: salt_id
                     }
                 );
