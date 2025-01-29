@@ -1,0 +1,1 @@
+{"version":1,"contracts":[{"id":"63t9udul1vf3e","package_name":"cairotoken","contract_name":"AssetToken","module_path":"cairotoken::AssetToken::AssetToken","artifacts":{"sierra":"cairotoken_AssetToken.contract_class.json","casm":"cairotoken_AssetToken.compiled_contract_class.json"}}]}

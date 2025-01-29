@@ -1,8 +1,7 @@
 pub use starknet::{ContractAddress, ClassHash};
-
 #[starknet::interface]
 pub trait IAssetToken<TContractState> {
-    
+    /// Update the class hash of the Counter contract to deploy when creating a new counter
     fn freeze(ref self: TContractState, user: ContractAddress);
     fn unfreeze(ref self: TContractState, user: ContractAddress);
     fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
@@ -243,15 +242,7 @@ mod AssetToken {
                     .len() {
                         let recipient: ContractAddress = *recipients[i];
                         let amount: u256 = *amounts[i];
-                        // Log whitelist status for debugging
-                        let is_whitelisted: bool = self.is_whitelisted(recipient);
-                        self.emit(WhitelistUser { user: recipient, whitelisted: is_whitelisted });
-
-                        assert!(
-                            is_whitelisted, "not whitelisted in batch"
-                        ); // Ensure whitelist status is checked correctly
-
-                        self.erc20.mint(recipient, amount);
+                        self.mint(recipient, amount);
                     }
         }
 

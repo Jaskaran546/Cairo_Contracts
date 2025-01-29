@@ -9,6 +9,15 @@ trait IController<TContractState> {
         amount: u256,
         action_id: felt252
     );
+
+    fn token_batch_mint(
+        ref self: TContractState,
+        token: ContractAddress,
+        recipients: Array<ContractAddress>,
+        amounts: Array<u256>,
+        action_id: felt252
+    );
+
     fn token_burn(
         ref self: TContractState,
         token: ContractAddress,
@@ -26,7 +35,6 @@ trait IController<TContractState> {
     fn is_frozen_account(
         self: @TContractState, token: ContractAddress, user: ContractAddress
     ) -> bool;
-
 
     fn token_add_default_admin(
         ref self: TContractState, token: ContractAddress, admin: ContractAddress, action_id: felt252
@@ -54,7 +62,9 @@ trait IController<TContractState> {
     );
 
 
-    fn set_admin_fee(ref self: TContractState, fee: u256, action_id: felt252);
+    fn set_admin_fee(
+        ref self: TContractState, fee: u256, token: ContractAddress, action_id: felt252
+    );
 
     fn deposit(
         ref self: TContractState,
@@ -66,10 +76,6 @@ trait IController<TContractState> {
         order_id: felt252
     );
     fn settlement(ref self: TContractState, order_id: felt252, action_id: felt252);
-    // fn batch_mint(
-//     ref self: TContractState, recipients: Array<(ContractAddress, u256)>,
-//     action_id: felt252
-// );
 }
 
 
@@ -166,6 +172,13 @@ pub mod Controller {
         action_id: felt252
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct BatchMinted {
+        token: ContractAddress,
+        recipient: Array<ContractAddress>,
+        amount: Array<u256>,
+        action_id: felt252
+    }
 
     #[derive(Drop, starknet::Event)]
     struct Minted {
@@ -208,6 +221,7 @@ pub mod Controller {
         AgentAdded: AgentAdded,
         AgentRemoved: AgentRemoved,
         Minted: Minted,
+        BatchMinted: BatchMinted,
         Burned: Burned,
         DefaultAdminAdded: DefaultAdminAdded,
         AdminFeeUpdated: AdminFeeUpdated,
@@ -225,37 +239,6 @@ pub mod Controller {
     impl Controller of super::IController<ContractState> {
         //-------------------------------TOKEN FUNCTIONS-------------------------------------
 
-        // fn batch_mint(
-        //     ref self: ContractState,  recipients: Array<(ContractAddress, u256)>,
-        //     action_id: felt252,
-        // ) {
-        //     let mut arr = array![];
-
-        //     // Same as ~ while (i < 10) arr.append(i++);
-        //     let mut i: u32 = 0;
-        //     let limit = recipients.len();
-        //     loop {
-        //         if i == limit {
-        //             break; // Exit the loop when all recipients are processed
-        //         }
-
-        //         // Safely access recipient and amount at the current index
-        //         let recipient_data = recipients.get(i).expect("Invalid recipient data");
-        //         let (recipient, amount) = recipient_data;
-
-        //         // Mint tokens for the current recipient
-        //         asset_token_dispatcher.mint(recipient, amount);
-
-        //         // Emit a Minted event for the current recipient
-        //         // self.emit(Minted {
-        //         //     token: token,
-        //         //     recipient: recipient,
-        //         //     amount: amount,
-        //         //     action_id: action_id,
-        //         // });
-        //         i += 1; // Increment the loop counter
-        // }
-
         fn token_mint(
             ref self: ContractState,
             token: ContractAddress,
@@ -269,6 +252,25 @@ pub mod Controller {
                 .emit(
                     Minted {
                         token: token, recipient: recipient, amount: amount, action_id: action_id
+                    }
+                );
+        }
+
+        fn token_batch_mint(
+            ref self: ContractState,
+            token: ContractAddress,
+            recipients: Array<ContractAddress>,
+            amounts: Array<u256>,
+            action_id: felt252
+        ) {
+            let recipients_data = recipients.clone();
+            let amounts_data = amounts.clone();
+            let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: token };
+            asset_token_dispatcher.batch_mint(recipients, amounts);
+            self
+                .emit(
+                    BatchMinted {
+                        token, recipient: recipients_data, amount: amounts_data, action_id
                     }
                 );
         }
@@ -456,7 +458,6 @@ pub mod Controller {
             let token = order.asset;
             let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: token };
             assert!(asset_token_dispatcher.isTokenAgent(get_caller_address()), "Invalid Issuer");
-
             assert!(self.investor_orders.read(order_id).status, "Order already settled");
 
             // Calculate admin fee amount
@@ -479,7 +480,12 @@ pub mod Controller {
                     }
                 )
         }
-        fn set_admin_fee(ref self: ContractState, fee: u256, action_id: felt252) {
+        fn set_admin_fee(
+            ref self: ContractState, fee: u256, token: ContractAddress, action_id: felt252
+        ) {
+            let asset_token_dispatcher = IAssetTokenDispatcher { contract_address: token };
+            assert!(asset_token_dispatcher.isTokenAgent(get_caller_address()), "Not agent");
+
             self.admin_fee.write(fee);
             self.emit(AdminFeeUpdated { admin_fee: fee, action_id: action_id })
         }
